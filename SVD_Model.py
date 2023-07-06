@@ -123,49 +123,45 @@ class Recommender_Model:
         self.indices_map = self.id_map.set_index('id')
         self.user_rating.drop(columns=['timestamp'], inplace=True)
     
-    def hybrid2(self, userId, title1, title2, title3):
-        idx1 = self.indices[title1]
-        idx2 = self.indices[title2]
-        idx3 = self.indices[title3]
-
-        tmdbId1 = self.id_map.loc[title1]['id']
-        tmdbId2 = self.id_map.loc[title2]['id']
-        tmdbId3 = self.id_map.loc[title3]['id']
-
-        movie_id1 = self.id_map.loc[title1]['movieId']
-        movie_id2 = self.id_map.loc[title2]['movieId']
-        movie_id3 = self.id_map.loc[title3]['movieId']
-
-        sim_scores = list(enumerate(self.cosine_sim[int(idx1)] + self.cosine_sim[int(idx2)] + self.cosine_sim[int(idx3)]))
+    def hybrid2(self, userId, *titles):
+        indices = [self.indices[title] for title in titles]
+        tmdbIds = [self.id_map.loc[title]['id'] for title in titles]
+        movieIds = [self.id_map.loc[title]['movieId'] for title in titles]
+    
+        cosine_sims = self.cosine_sim.astype(np.float64)
+        for i, idx in enumerate(indices):
+            cosine_sims += self.cosine_sim[int(idx)]
+    
+        sim_scores = list(enumerate(cosine_sims))
         sim_scores = sorted(sim_scores, key=lambda x: x[1], reverse=True)
         sim_scores = sim_scores[1:56]
         movie_indices = [i[0] for i in sim_scores]
-
+    
         movies = self.cleaned_data.iloc[movie_indices][['title', 'vote_count', 'vote_average', 'id']]
         movies['est'] = movies['id'].apply(lambda x: self.SVD.predict(userId, self.indices_map.loc[x]['movieId']).est)
         movies = movies.sort_values('est', ascending=False)
         return movies.head(10)
-    
-    def get_similar_users(self, movie_names):
+        
+    def get_similar_users(self, movie_names, ratings):
         movie_ids = [self.cleaned_data.loc[self.cleaned_data['title'] == movie]['id'].iloc[0] for movie in movie_names]
         new_user_ratings = pd.DataFrame({
             'userId': [max(self.user_rating['userId']) + 1] * len(movie_ids),
             'movieId': movie_ids,
-            'rating': [5.0] * len(movie_ids)
+            'rating': ratings
         })
-
+    
         merged_ratings = pd.concat([self.user_rating, new_user_ratings], ignore_index=True)
-
+    
         user_item_matrix = merged_ratings.pivot_table(index='userId', columns='movieId', values='rating', fill_value=0)
-
+    
         new_user_vector = user_item_matrix.loc[user_item_matrix.index[-1]].values.reshape(1, -1)
         user_similarity = cosine_similarity(user_item_matrix.values[:-1], new_user_vector)
-
+    
         similar_users_indices = user_similarity.argsort(axis=0)[-10:].flatten()[::-1]
-
+    
         similar_users_similarity = user_similarity[similar_users_indices].flatten()
         similar_users = user_item_matrix.iloc[similar_users_indices]
-
+    
         similar_users_df = pd.DataFrame({'userId': similar_users.index, 'Similarity': similar_users_similarity})
         return similar_users_df
         

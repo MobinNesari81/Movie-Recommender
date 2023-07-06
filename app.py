@@ -33,8 +33,11 @@ def view_suggestions(movies_array: list):
         st.markdown(f"__Genres:__")
         st.write(info['genres'], value='genre')
         st.markdown(f"__Language:__ {info['language']}")
-        poster_url = get_movie_poster_url(info['title'])
-        st.image(poster_url, caption='Movie Poster')
+        try:
+            poster_url = get_movie_poster_url(info['title'])
+            st.image(poster_url, caption='Movie Poster')
+        except:
+            st.error('Failed to retrieve movie poster.')
         st.divider()
 
 

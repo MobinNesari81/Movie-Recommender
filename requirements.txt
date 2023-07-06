@@ -1,0 +1,10 @@
+   streamlit
+   pandas
+   numpy
+   seaborn
+   matplotlib
+   scipy
+   scikit-learn
+   nltk
+   surprise
+   python-levenshtein

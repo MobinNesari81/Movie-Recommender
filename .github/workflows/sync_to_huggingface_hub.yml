@@ -17,4 +17,4 @@ jobs:
       - name: Push to hub
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        run: git push https://Mobin-Nesari:$HF_TOKEN@huggingface.co/spaces/Mobin-Nesari/MM-Movie-Recommender main
+        run: git push --force https://Mobin-Nesari:$HF_TOKEN@huggingface.co/spaces/Mobin-Nesari/MM-Movie-Recommender main

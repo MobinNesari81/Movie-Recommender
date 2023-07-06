@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
+from PIL import Image
 from SVD_Model import Recommender_Model
 from movie_poster import get_movie_poster_url
 
@@ -12,19 +12,23 @@ def load_model():
 model = load_model()
 
 
-def view_suggestions(movies_array: list):
+def view_suggestions(movies_array: list, ratings: list):
     movie_titles = [movie.strip() for movie in movies_array if movie.strip()]
     if len(movie_titles) < 3:
         st.warning("Please enter at least three movie titles.")
         return
-    suggestions = []
+    if len(ratings) != len(movie_titles):
+        st.warning("Please enter a rating for each movie.")
+        return
+    ratings = [float(rating) for rating in ratings]
+    if not all(0 <= rating <= 5 for rating in ratings):
+        st.warning("Please enter a rating between 0 and 5 for each movie.")
+        return
+    similar_users = model.get_similar_users(movie_titles, ratings)
+    suggestions = model.suggest(similar_users)
     for movie_title in movie_titles:
-        nearest_movie = model.find_nearest_movie(movie_title)[0]
-        suggestions.append(nearest_movie)
-    suggested_movies = model.suggest(suggestions)
-    for movie_title in movie_titles:
-        suggested_movies = suggested_movies[suggested_movies['title'] != movie_title]
-    suggested_movies = suggested_movies.to_numpy()
+        suggestions = suggestions[suggestions['title'] != movie_title]
+    suggested_movies = suggestions.to_numpy()
     for row in suggested_movies:
         name = row[0]
         info = model.get_movie_info(name)
@@ -63,8 +67,10 @@ with st.form("input_form"):
         step=1,
     )
     movie_inputs = []
+    rating_inputs = []
     for i in range(num_movies):
         movie_inputs.append(st.text_input(f"Movie {i + 1}", key=f"movie_{i}"))
+        rating_inputs.append(st.number_input(f"Rating for Movie {i + 1}", min_value=0, max_value=5, value=5, step=0.5))
     submitted = st.form_submit_button("Submit")
     if submitted:
-        view_suggestions(movie_inputs)
+        view_suggestions(movie_inputs, rating_inputs)

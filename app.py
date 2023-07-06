@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 from SVD_Model import Recommender_Model
+from movie_poster import get_movie_poster_url
 
 
 @st.cache_resource
@@ -32,6 +33,8 @@ def view_suggestions(movies_array: list):
         st.markdown(f"__Genres:__")
         st.write(info['genres'], value='genre')
         st.markdown(f"__Language:__ {info['language']}")
+        poster_url = get_movie_poster_url(info['title'])
+        st.image(poster_url, caption='Movie Poster')
         st.divider()
 
 

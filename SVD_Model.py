@@ -142,26 +142,26 @@ class Recommender_Model:
         movies = movies.sort_values('est', ascending=False)
         return movies.head(10)
         
-        def get_similar_users(self, movie_names):
-            movie_ids = [self.cleaned_data.loc[self.cleaned_data['title'] == movie]['id'].iloc[0] for movie in movie_names]
-            new_user_ratings = pd.DataFrame({
-                'userId': [max(self.user_rating['userId']) + 1] * len(movie_ids),
-                'movieId': movie_ids,
-                'rating': [5.0] * len(movie_ids)
-            })
-
+    def get_similar_users(self, movie_names, ratings):
+        movie_ids = [self.cleaned_data.loc[self.cleaned_data['title'] == movie]['id'].iloc[0] for movie in movie_names]
+        new_user_ratings = pd.DataFrame({
+            'userId': [max(self.user_rating['userId']) + 1] * len(movie_ids),
+            'movieId': movie_ids,
+            'rating': ratings
+        })
+    
         merged_ratings = pd.concat([self.user_rating, new_user_ratings], ignore_index=True)
-
+    
         user_item_matrix = merged_ratings.pivot_table(index='userId', columns='movieId', values='rating', fill_value=0)
-
+    
         new_user_vector = user_item_matrix.loc[user_item_matrix.index[-1]].values.reshape(1, -1)
         user_similarity = cosine_similarity(user_item_matrix.values[:-1], new_user_vector)
-
+    
         similar_users_indices = user_similarity.argsort(axis=0)[-10:].flatten()[::-1]
-
+    
         similar_users_similarity = user_similarity[similar_users_indices].flatten()
         similar_users = user_item_matrix.iloc[similar_users_indices]
-
+    
         similar_users_df = pd.DataFrame({'userId': similar_users.index, 'Similarity': similar_users_similarity})
         return similar_users_df
         
